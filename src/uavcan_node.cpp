@@ -91,7 +91,7 @@ static THD_FUNCTION(uavcan_node, arg)
 
     chRegSetThreadName("uavcan node");
 
-    if (can.init(CAN_BITRATE) != 0) {
+    if (can.init((uint32_t)CAN_BITRATE) != 0) {
         uavcan_failure("CAN driver");
     }
 
@@ -368,7 +368,9 @@ static THD_FUNCTION(uavcan_node, arg)
 
             chprintf(ch_stdout, "LoadConfiguration received\n");
 
-            node.setStatusOk();
+            // Mark the node as correctly initialized
+            node.getNodeStatusProvider().setModeOperational();
+            node.getNodeStatusProvider().setHealthOk();
         });
 
     if (load_config_srv_res < 0) {
