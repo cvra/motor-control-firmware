@@ -91,7 +91,7 @@ static THD_FUNCTION(uavcan_node, arg)
 
     chRegSetThreadName("uavcan node");
 
-    if (can.init(CAN_BITRATE) != 0) {
+    if (can.init((uint32_t)CAN_BITRATE) != 0) {
         uavcan_failure("CAN driver");
     }
 
