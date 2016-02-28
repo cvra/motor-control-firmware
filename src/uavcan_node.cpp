@@ -21,6 +21,7 @@
 #include <cvra/motor/config/PositionPID.hpp>
 #include <cvra/motor/config/TorqueLimit.hpp>
 #include <cvra/motor/config/FeedbackStream.hpp>
+#include <cvra/motor/EmergencyStop.hpp>
 #include <cvra/StringID.hpp>
 #include <cvra/motor/EmergencyStop.hpp>
 #include <cvra/motor/feedback/CurrentPID.hpp>
@@ -127,6 +128,7 @@ static THD_FUNCTION(uavcan_node, arg)
         uavcan_failure("cvra::Reboot subscriber");
     }
 
+#if 0
     uavcan::Subscriber<cvra::motor::EmergencyStop> emergency_stop_sub(node);
     ret = emergency_stop_sub.start(
         [&](const uavcan::ReceivedDataStructure<cvra::motor::EmergencyStop>& msg)
@@ -266,8 +268,16 @@ static THD_FUNCTION(uavcan_node, arg)
         uavcan_failure("cvra::motor::feedback::MotorTorque publisher");
     }
 
+#endif
 
+    uavcan::Publisher<cvra::motor::EmergencyStop> stop_pub(node);
+    const int stop_init_res = stop_pub.init();
+    if (stop_init_res < 0)
+    {
+        uavcan_failure("cvra::motor::EmergencyStop");
+    }
 
+#if 0
     /* Servers */
     /** initial config */
     uavcan::ServiceServer<cvra::motor::config::LoadConfiguration> load_config_srv(node);
@@ -474,6 +484,7 @@ static THD_FUNCTION(uavcan_node, arg)
     if (enable_motor_srv_res < 0) {
         uavcan_failure("cvra::motor::config::EnableMotor server");
     }
+#endif
 
     while (true) {
         int res = node.spin(uavcan::MonotonicDuration::fromMSec(1000/UAVCAN_SPIN_FREQUENCY));
@@ -482,6 +493,11 @@ static THD_FUNCTION(uavcan_node, arg)
             uavcan_failure("UAVCAN spin");
         }
 
+        if (palReadPad(GPIOA, GPIOA_GPIO_I)) {
+            cvra::motor::EmergencyStop stop;
+            stop_pub.broadcast(stop);
+        }
+#if 0
         /* Streams */
         if (stream_update(&current_pid_stream_config)) {
             cvra::motor::feedback::CurrentPID current_pid;
@@ -536,7 +552,7 @@ static THD_FUNCTION(uavcan_node, arg)
             string_id.id = node_arg->node_name;
             string_id_pub.broadcast(string_id);
         }
-
+#endif
 
     }
 }
